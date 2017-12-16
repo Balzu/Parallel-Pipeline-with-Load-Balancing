@@ -1,48 +1,67 @@
 #include "Node.hpp"
 #include <iostream>
+#include <thread>
+#include <vector>
 using namespace std;;
 
 template <typename Tin, typename Tf, typename Tout>
 struct Stage : Node{
 
     Stage(Tf  function):fun{function}, input_ptr{new(Tin)},output_ptr{new(Tout)},
-	    end{false}, next{nullptr}, new_input{false},ready{true}{};	
+	    end{false}, next{nullptr}, new_input{false}{};	
 //TODO: invece di dire che sono ready solo qando non sto calcolando, posso dire che sono ready quando ho spazio in input
     void stage_func(){  
 	Tin input = *input_ptr;
       //  ready = false; //TODO: atomic set
-        Tout out = fun(*input_ptr);  // compute-intensive line..
+    Tout out = fun(*input_ptr);  // compute-intensive line..
 	if (next!=nullptr)  // wait for next node to be ready only if next node exists
 	    while(!(next->is_ready())){};//TODO: and end==false 
 	*output_ptr = out;
 	if(next!=nullptr) next->set_new_input();
 	//ready = true;
-        new_input = false;        	
+    new_input = false;        	
 	return;
     }
 
-    void run(){
-//	while(!end){ //TODO: non bella questa condizione
- 	    while(!end && !new_input){}; //spinning..    
+    void run_thread(){
+        while(!end){ //TODO: non bella questa condizione
+ 	        while(!end && !new_input){}; //spinning..    
 	//while(!ready);
             if(end) return;
-	    cout << "Processing an item\n";
-	    stage_func();
-//	}
+            if (input_ptr==nullptr) cout << "OOOOOOOO" << endl;
+	        cout << "Processing an item\n";
+	        stage_func();
+    	}
     }
 
-    void run_and_wait_end(){
+    void run(){
+        thread t(&Stage::run_thread, this); 
+       // *tptr = move(t);
+        //t.detach();
+        threads.push_back(move(t));
+        return;
+    }
+
+    void wait_end(){
+        threads[0].join();
+    }
+
+    void run_and_wait_end(){  //TODO: ha senso solo su Pipeline?
         cout << "Running node and waiting end\n";
+        run();
+        wait_end();
     }
 
     void set_input(Tin i){ //TODO: maybe erase ?
+        while(!is_ready());
         *input_ptr = i;
-	new_input = true;
+	    new_input = true;
     }
 
     void set_input_ptr(void* in_ptr){
+        while(!is_ready());
         input_ptr = static_cast<Tin*>(in_ptr);
-	new_input = true;
+	    new_input = true;
     }
 
     void set_output_ptr(Tout* optr){
@@ -58,7 +77,7 @@ struct Stage : Node{
     }
 
     Tout get_output(){
-        return output_ptr;
+        return *output_ptr;
     }
 
     bool is_ready(){
@@ -78,11 +97,15 @@ struct Stage : Node{
         return 1;
     }
 
+    void end_s(){ //TODO: usa valore speciale in input per terminazione
+        end=true;
+    }
+
     Tf fun;
     Tout * output_ptr;
     Tin * input_ptr;
     bool end;
-    bool ready; //ready to accept a new task
+    vector<thread> threads; 
     bool new_input;
     Node * next;
 };

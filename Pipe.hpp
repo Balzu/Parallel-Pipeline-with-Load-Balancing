@@ -1,5 +1,6 @@
 #include "Stage.hpp"
 #include <list>
+#include <thread>
 using namespace std;;
 
 template <typename Tin, typename Tout>
@@ -71,6 +72,8 @@ struct Pipe : Node {
         for(auto &x: nodes)
 	    x->run();
     }//TODO
+
+   
     void run_and_wait_end() {}//TODO
 
 
