@@ -14,7 +14,7 @@ int main(int argc, char* argv[]){
     this_thread::sleep_for(chrono::milliseconds(1000));
     s.set_input_ptr(nullptr);
     this_thread::sleep_for(chrono::milliseconds(1000));
-    s.end_s();
+   // s.end_s();
     s.wait_end();    
     cout << "Output of stage thread: " << s.get_output() << endl;
 /*
