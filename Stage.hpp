@@ -2,6 +2,7 @@
 #include <iostream>
 #include <thread>
 #include <vector>
+#include <chrono>
 using namespace std;;
 
 struct IStage : Node{
@@ -9,21 +10,27 @@ struct IStage : Node{
     Node * next;
     virtual void collapse() = 0;
     virtual IStage* get_next() = 0;
-    
+    virtual bool is_collapsed() = 0;
+    virtual double get_exec_time() = 0; 
+    virtual void collapse_next_stage() = 0;
+    virtual void wait_end() = 0;
 };
 
 template <typename Tin, typename Tf, typename Tout>
 struct Stage : IStage{
 
     Stage(Tf  function, int ind):fun{function}, input_ptr{new(Tin)},output_ptr{new(Tout)},
-	    /*{false},*/ next{nullptr}, new_input{false}, collapsed{0}, i{ind}{};	
+	    /*{false},*/ next{nullptr}, new_input{false}, collapsed{0}, i{ind}, exec_time{0.0}{};	
 //TODO: invece di dire che sono ready solo quando non sto calcolando, posso dire che sono ready quando ho spazio in input
    
     void stage_func(){ 
-	cout << "Input ptr: " << input_ptr << endl; 
 	Tin input = *input_ptr;
+        auto start = chrono::system_clock::now();
         Tout out = fun(*input_ptr);  // compute-intensive line..
-        cout << "Stage computed: " << out << endl;
+        auto end = chrono::system_clock::now();
+	chrono::duration<double> diff = end-start;
+	exec_time = diff.count();
+	cout << "Stage computed: " << out << endl;
 	if (next!=nullptr)  // wait for next node to be ready only if next node exists
 	    while(!(next->is_ready())){};
 	*output_ptr = out;
@@ -37,12 +44,6 @@ struct Stage : IStage{
             while(!end() && !new_input){}; //spinning..    
             if(end()){
                 if(next!=nullptr && collapsed!=-1){ //collapsed = -1 means to stop only this thread (because of collapsing) 
-	 	    /*IStage * n = dynamic_cast<IStage*>(next);
-                    n->set_input_ptr(nullptr);
-		    for(int i=0; i<collapsed; i++){
-		        n = dynamic_cast<IStage*>(n->next);
-			n->set_input_ptr(nullptr);
-		    }*/
 		    IStage * nptr = static_cast<IStage*>(next);
 		    nptr -> set_input_ptr(nullptr);
 		    for(int i=0; i< collapsed; i++){	  
@@ -66,9 +67,7 @@ struct Stage : IStage{
     }
 
     void run(){
-        thread t(&Stage::run_thread, this); 
-       // *tptr = move(t);
-        //t.detach();
+        thread t(&Stage::run_thread, this);       
         threads.push_back(move(t));
         return;
     }
@@ -138,6 +137,10 @@ struct Stage : IStage{
         collapsed=-1;
     }
 
+    bool is_collapsed(){
+        return collapsed==-1;
+    }
+
     void collapse_next_stage(){ //TODO: parte difficile va qui, next può non essere chiaro
 	IStage * nptr = static_cast<IStage*>(next);
 	for(int i=0; i< collapsed; i++){	  
@@ -156,6 +159,10 @@ struct Stage : IStage{
         return static_cast<IStage*>(next);
     }
 
+    double get_exec_time(){
+        return exec_time;
+    }
+
     Tf fun;
     Tout * output_ptr;
     Tin * input_ptr;
@@ -165,6 +172,7 @@ struct Stage : IStage{
     Node * next;
     int collapsed;
     int i; //for debug
+    double exec_time;
 };
 
 

@@ -1,12 +1,13 @@
 #include "Stage.hpp"
 #include <list>
 #include <thread>
+#include <algorithm>
 using namespace std;;
 
 template <typename Tin, typename Tout>
 struct Pipe : Node {
     template<typename Head, typename... Tail> 
-    Pipe(Head h, Tail... t){
+    Pipe(Head h, Tail... t):max_consec{0}{
         create_pipeline(h,t...);
     }
     
@@ -19,10 +20,13 @@ struct Pipe : Node {
     //Invoca metodo ricorsivamente finchè l'ultimo elemento di nodes è uno stage
     void add_next(Node& next, bool outer=true){
         nodes.back()->add_next(next, false);
-	if(outer==true) nodes.push_back(&next);  		
+
+	IStage * isptr = static_cast<IStage*>(&next);
+	//nodes.push_back(&next);  		
+	nodes.push_back(isptr);  		
     } 
 
-    void add_node(Node* head_ptr){
+    void add_node(IStage* head_ptr){
 	if(!nodes.empty())  // if not empty link the two stages 
 	    add_next(*head_ptr,true); //invoke the method of the pipeline	    
 	else 
@@ -43,7 +47,7 @@ struct Pipe : Node {
         nodes.front()->set_input_ptr(in_ptr);
     }
 
-    void set_input(Tin in){
+    void set_input(Tin& in){
         nodes.front()->set_input_ptr(&in);
     }
 
@@ -72,26 +76,76 @@ struct Pipe : Node {
 	    x->run();
     }//TODO
 
-    void run(list<Tin>& input){
-        thread t(&Pipe::run_manager, this, ref(input)); 
+    void run(list<Tin>&& input){
+        thread t(&Pipe::run_manager, this, ref(input));
+      /*  for(auto& x : nodes){
+	    x->wait_end();
+	}*/	
+	t.join();
     }
 
     void run_manager(list<Tin>& input){
-        
+       run();
+       for(auto& x:input){
+           set_input(x);
+	   monitor_times();
+       }
+       set_input_ptr(nullptr); 
+       for(auto& s : nodes)
+	   s->wait_end();
     }
 
    
     void run_and_wait_end() {}//TODO
 
+    
+    void monitor_times(){
+        vector<pair<int,double>> times;
+	
+	for (int i=0; i<nodes.size(); i++){	    
+	    if(!(nodes[i]->is_collapsed())) 
+		times.push_back(make_pair(i, nodes[i]->get_exec_time()));
+	}
+	if (times.size()>=3){ // can't collapse stages if you don't have at least three
+	    auto pair_comp = [](pair<int,double>p1, pair<int,double>p2){
+	        return p1.second < p2.second;
+  	    };	
+	    sort(times.begin(), times.end(), pair_comp);
+	    if(times[0].second==0) return; //not all stages executed
+	    if(times.back().first==slowest){ //slowest node is the same one of before
+	        if (++consecutive>=max_consec){ //have to LOAD BALANCE
+		    double max_exec_time = times.back().second;
+		    for(int i=0; i<times.size(); i++){ //times sorted by increasing times
+		        int j = times[i].first;
+			try{
+			    if(nodes.at(j)->get_exec_time() + nodes.at(j+1)->get_exec_time() < max_exec_time){
+			        nodes[j]->collapse_next_stage();
+			        return;
+			    }
+			}
+			catch(out_of_range){/*just skip this iteration*/}
+		    }		
+	         }
+	    }	
+	    else
+	        slowest = times.back().first;
+	}
+    }
 
-//TODO: puoi togliere attributi input_ptr e output_ptr, e mettere invece un metodo
-//che  restituisce come input_ptr della pipeline l'input_ptr del primo stage
-//e come output_ptr l'output_ptr dell' ultimo stage    
- //   Tout * output_ptr; 
- //   Tin * input_ptr;
+
+
+
+
+    int slowest;
+    int consecutive;
+    int const max_consec;
     bool end;
     bool ready;
     bool new_input;
-    Node* next;
-    list<Node*> nodes;
+    IStage* next;
+    vector<IStage*> nodes;
 };
+
+
+
+
