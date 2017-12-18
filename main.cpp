@@ -49,7 +49,7 @@ int main(int argc, char* argv[]){
     
     Pipe<int,int> p (&s, &s2, &s3, &s4);
     cout << "Pipe length: " << p.num_nodes() << endl;
-    p.run({1,2,3});
+    p.run({1,2,3,4,5,6,7,8,9,10,11,12,13,14,15});
 
 
 

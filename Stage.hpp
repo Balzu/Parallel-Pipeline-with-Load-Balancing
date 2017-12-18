@@ -14,6 +14,7 @@ struct IStage : Node{
     virtual double get_exec_time() = 0; 
     virtual void collapse_next_stage() = 0;
     virtual void wait_end() = 0;
+    virtual int num_collapsed() = 0;
 };
 
 template <typename Tin, typename Tf, typename Tout>
@@ -48,7 +49,8 @@ struct Stage : IStage{
 		    nptr -> set_input_ptr(nullptr);
 		    for(int i=0; i< collapsed; i++){	  
 	 	        nptr = nptr->get_next();
-			nptr->set_input_ptr(nullptr);
+			cout << "ENDING: already collapsed: " << collapsed << ", thread # = " << i << endl;
+			/*if(nptr!=nullptr)*/ nptr->set_input_ptr(nullptr);
 		    }	
 		}
             }
@@ -147,6 +149,7 @@ struct Stage : IStage{
 	    nptr = nptr->get_next();
 	}	
 	//Ends the thread, but only after finishing processing current task
+	cout << "Already collapsed: " << collapsed << ", thread # = " << i << endl;
 	nptr->collapse();
 	collapsed++; 
     }
@@ -163,6 +166,10 @@ struct Stage : IStage{
         return exec_time;
     }
 
+    int num_collapsed(){
+        return collapsed;
+    }
+
     Tf fun;
     Tout * output_ptr;
     Tin * input_ptr;
@@ -171,7 +178,7 @@ struct Stage : IStage{
     bool new_input;
     Node * next;
     int collapsed;
-    int i; //for debug
+    int const i; //for debug
     double exec_time;
 };
 

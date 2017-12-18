@@ -7,7 +7,7 @@ using namespace std;;
 template <typename Tin, typename Tout>
 struct Pipe : Node {
     template<typename Head, typename... Tail> 
-    Pipe(Head h, Tail... t):max_consec{0}{
+    Pipe(Head h, Tail... t):max_consec{2},consecutive{0},slowest{-1} {
         create_pipeline(h,t...);
     }
     
@@ -103,7 +103,7 @@ struct Pipe : Node {
         vector<pair<int,double>> times;
 	
 	for (int i=0; i<nodes.size(); i++){	    
-	    if(!(nodes[i]->is_collapsed())) 
+	    if(!(nodes[i]->is_collapsed())) //Can collapse only stages not already collapsed 
 		times.push_back(make_pair(i, nodes[i]->get_exec_time()));
 	}
 	if (times.size()>=3){ // can't collapse stages if you don't have at least three
@@ -117,10 +117,13 @@ struct Pipe : Node {
 		    double max_exec_time = times.back().second;
 		    for(int i=0; i<times.size(); i++){ //times sorted by increasing times
 		        int j = times[i].first;
-			try{
+			try{  //TODO: bug possono essere qui
 			    if(nodes.at(j)->get_exec_time() + nodes.at(j+1)->get_exec_time() < max_exec_time){
-			        nodes[j]->collapse_next_stage();
-			        return;
+			        int n = nodes.size()-1;
+				if (j + nodes[j]->num_collapsed() < n){
+				    nodes[j]->collapse_next_stage();
+			            return;
+				}
 			    }
 			}
 			catch(out_of_range){/*just skip this iteration*/}
