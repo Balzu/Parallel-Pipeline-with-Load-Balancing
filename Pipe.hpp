@@ -7,7 +7,6 @@ template <typename Tin, typename Tout>
 struct Pipe : Node {
     template<typename Head, typename... Tail> 
     Pipe(Head h, Tail... t){
-	//add_node(h);
         create_pipeline(h,t...);
     }
     
@@ -72,6 +71,14 @@ struct Pipe : Node {
         for(auto &x: nodes)
 	    x->run();
     }//TODO
+
+    void run(list<Tin>& input){
+        thread t(&Pipe::run_manager, this, ref(input)); 
+    }
+
+    void run_manager(list<Tin>& input){
+        
+    }
 
    
     void run_and_wait_end() {}//TODO
