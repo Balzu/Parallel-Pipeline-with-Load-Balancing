@@ -91,6 +91,12 @@ struct Pipe : Node {
 	   monitor_times();
        }
        set_input_ptr(nullptr); 
+      /* for(auto& x: nodes){
+         //  if(!(x->is_collapsed())){  //TODO
+	       x->set_input_ptr(nullptr);
+	//       return;
+	 //  }
+       }*/
        for(auto& s : nodes)
 	   s->wait_end();
     }

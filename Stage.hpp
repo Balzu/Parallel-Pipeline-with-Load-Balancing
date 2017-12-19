@@ -15,6 +15,7 @@ struct IStage : Node{
     virtual void collapse_next_stage() = 0;
     virtual void wait_end() = 0;
     virtual int num_collapsed() = 0;
+    virtual void set_no_new_input() = 0;
 };
 
 template <typename Tin, typename Tf, typename Tout>
@@ -31,11 +32,12 @@ struct Stage : IStage{
         auto end = chrono::system_clock::now();
 	chrono::duration<double> diff = end-start;
 	exec_time = diff.count();
-	cout << "Stage computed: " << out << endl;
+//	cout << "Stage computed: " << out << endl;
 	if (next!=nullptr)  // wait for next node to be ready only if next node exists
-	    while(!(next->is_ready())){};
+	//se è collassato, inutile aspettare perchè tanto lo esegue questo thread
+	while(!(next->is_ready()) && !(((IStage*)next)->is_collapsed())){}; 
 	*output_ptr = out;
-	if(next!=nullptr) next->set_new_input();
+	if(next!=nullptr /*&& !next.is_collapsed()*/) next->set_new_input();
         new_input = false;        	
 	return;
     }
@@ -44,18 +46,25 @@ struct Stage : IStage{
         while(!end()){ 
             while(!end() && !new_input){}; //spinning..    
             if(end()){
-                if(next!=nullptr && collapsed!=-1){ //collapsed = -1 means to stop only this thread (because of collapsing) 
+	//	new_input= false; //TODO
+                if(next!=nullptr && collapsed!=-1){ //collapsed = -1 means to stop only this thread (because of collapsing) TODO: puoi togliere prima guardia, perchè testi sotto
+	// If the next stages are collapsed, then they are already ended. 
+	// So, we just need to set nullptr as input to the next active thread (if any)
 		    IStage * nptr = static_cast<IStage*>(next);
-		    nptr -> set_input_ptr(nullptr);
-		    for(int i=0; i< collapsed; i++){	  
+		   // nptr -> set_input_ptr(nullptr);
+		   // for(int i=0; i< collapsed; i++){
+		      while(nptr!=nullptr && nptr->is_collapsed()){	  
 	 	        nptr = nptr->get_next();
-			cout << "ENDING: already collapsed: " << collapsed << ", thread # = " << i << endl;
-			/*if(nptr!=nullptr)*/ nptr->set_input_ptr(nullptr);
-		    }	
+		  //	cout << "ENDING: already collapsed: " << collapsed << ", thread # = " << i << endl;
+		//	nptr->set_no_new_input(); //TODO
+			/*if(nptr!=nullptr)*/ // nptr->set_input_ptr(nullptr);
+		//	nptr->set_no_new_input();  //TODO
+		    }
+	    	    if(nptr!=nullptr) nptr->set_input_ptr(nullptr);
 		}
             }
             else{
-	        cout << "Processing an item\n";
+	       // cout << "Processing an item\n";
 	        stage_func();
 		if(collapsed!=0){ //this thread has to run more Stages TODO: puoi togliere if
 		    IStage * nptr = static_cast<IStage*> (next);
@@ -124,6 +133,11 @@ struct Stage : IStage{
 
     void set_new_input(){
         new_input=true;
+    }
+
+    //TODO
+    void set_no_new_input(){
+        new_input=false;
     }
 
     void add_next(Node &n, bool=false){
