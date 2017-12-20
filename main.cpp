@@ -17,16 +17,20 @@ int main(int argc, char* argv[]){
         for(int i=0; i<300; i++) i=i;
 	return x;
     };
-    Stage<int,function<int(int)>,int> s{
+    Stage<int,function<int(int)>,int> s1{
         [](int x){
 	    for(int i=0; i<1000; i++)
                 i=i;
 	    return x;
 	},1};
-    Stage<int,function<int(int)>,int> s2{fslow,2};
-    Stage<int,function<int(int)>,int> s3{fslow2,3};
-    Stage<int,function<float(int)>,float> s4{fp,4};
-    Stage<int,function<int(int)>,int> s1{f,1};
+    Stage<int,function<int(int)>,int> s2{f,2};
+    Stage<int,function<int(int)>,int> s3{f,3};
+    Stage<int,function<int(int)>,int> s4{f,4};
+    Stage<int,function<int(int)>,int> s5{f,5};
+    Stage<int,function<int(int)>,int> s6{f,6};
+    Stage<int,function<int(int)>,int> s7{f,7};
+    Stage<int,function<float(int)>,float> sp{fp,8};
+  
    
 
    /* LB Pipeline by hand 
@@ -59,7 +63,7 @@ int main(int argc, char* argv[]){
 */
 
     
-    Pipe<int,float> p (&s1, &s2, &s3, &s4);
+    Pipe<int,float> p (&s1, &s2, &s3, &s4, &s5, &s6, &s7, &sp);
     cout << "Pipe length: " << p.num_nodes() << endl;
     p.run({1,2,3,4,5,6,7,8,9,10,11,12,13,14,15});
 

@@ -45,26 +45,8 @@ struct Stage : IStage{
     void run_thread(){
         while(!end()){ 
             while(!end() && !new_input){}; //spinning..    
-            if(end()){
-	//	new_input= false; //TODO
-                if(next!=nullptr && collapsed!=-1){ //collapsed = -1 means to stop only this thread (because of collapsing) TODO: puoi togliere prima guardia, perchè testi sotto
-	// If the next stages are collapsed, then they are already ended. 
-	// So, we just need to set nullptr as input to the next active thread (if any)
-		    IStage * nptr = static_cast<IStage*>(next);
-		   // nptr -> set_input_ptr(nullptr);
-		   // for(int i=0; i< collapsed; i++){
-		      while(nptr!=nullptr && nptr->is_collapsed()){	  
-	 	        nptr = nptr->get_next();
-		  //	cout << "ENDING: already collapsed: " << collapsed << ", thread # = " << i << endl;
-		//	nptr->set_no_new_input(); //TODO
-			/*if(nptr!=nullptr)*/ // nptr->set_input_ptr(nullptr);
-		//	nptr->set_no_new_input();  //TODO
-		    }
-	    	    if(nptr!=nullptr) nptr->set_input_ptr(nullptr);
-		}
-            }
-            else{
-	       // cout << "Processing an item\n";
+            if(!end()){
+	    //    cout << "Processing an item\n";
 	        stage_func();
 		if(collapsed!=0){ //this thread has to run more Stages TODO: puoi togliere if
 		    IStage * nptr = static_cast<IStage*> (next);
@@ -74,8 +56,20 @@ struct Stage : IStage{
 		    }
 		}
             }
-    	}
+    	} //Finalization..       
+        if(next!=nullptr && collapsed!=-1){ //collapsed = -1 means to stop only this thread (because of collapsing) TODO: puoi togliere prima guardia, perchè testi sotto
+	// If the next stages are collapsed, then they are already ended. 
+	// So, we just need to set nullptr as input to the next active thread (if any)
+	    IStage * nptr = static_cast<IStage*>(next);		 
+	    while(nptr!=nullptr && nptr->is_collapsed()){	  
+	        nptr = nptr->get_next();		
+	    }
+	    if(nptr!=nullptr) nptr->set_input_ptr(nullptr);
+	}
     }
+
+
+    
 
     void run(){
         thread t(&Stage::run_thread, this);       
@@ -150,6 +144,7 @@ struct Stage : IStage{
     }
 
     void collapse(){
+        while(new_input); //collapse only after the input has been executed	
         collapsed=-1;
     }
 
@@ -164,6 +159,7 @@ struct Stage : IStage{
 	}	
 	//Ends the thread, but only after finishing processing current task
 	cout << "Already collapsed: " << collapsed << ", thread # = " << i << endl;
+	collapsed += nptr->num_collapsed(); //TODO: controllo che ritorni >=0
 	nptr->collapse();
 	collapsed++; 
     }
