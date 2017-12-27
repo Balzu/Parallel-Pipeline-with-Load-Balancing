@@ -15,15 +15,13 @@ struct IStage : Node{
     virtual void collapse_next_stage() = 0;
     virtual void wait_end() = 0;
     virtual int num_collapsed() = 0;
-    virtual void set_no_new_input() = 0;
 };
 
 template <typename Tin, typename Tf, typename Tout>
 struct Stage : IStage{
 
     Stage(Tf  function, int ind):fun{function}, input_ptr{new(Tin)},output_ptr{new(Tout)},
-	    /*{false},*/ next{nullptr}, new_input{false}, collapsed{0}, i{ind}, exec_time{0.0}{};	
-//TODO: invece di dire che sono ready solo quando non sto calcolando, posso dire che sono ready quando ho spazio in input
+	     next{nullptr}, new_input{false}, collapsed{0}, i{ind}, exec_time{0.0}{};	
    
     void stage_func(){ 
 	Tin input = *input_ptr;
@@ -32,12 +30,11 @@ struct Stage : IStage{
         auto end = chrono::system_clock::now();
 	chrono::duration<double> diff = end-start;
 	exec_time = diff.count();
-//	cout << "Stage computed: " << out << endl;
 	if (next!=nullptr)  // wait for next node to be ready only if next node exists
 	//se è collassato, inutile aspettare perchè tanto lo esegue questo thread
 	while(!(next->is_ready()) && !(((IStage*)next)->is_collapsed())){}; 
 	*output_ptr = out;
-	if(next!=nullptr /*&& !next.is_collapsed()*/) next->set_new_input();
+	if(next!=nullptr) next->set_new_input();
         new_input = false;        	
 	return;
     }
@@ -45,10 +42,9 @@ struct Stage : IStage{
     void run_thread(){
         while(!end()){ 
             while(!end() && !new_input){}; //spinning..    
-            if(!end()){
-	    //    cout << "Processing an item\n";
+            if(!end()){	
 	        stage_func();
-		if(collapsed!=0){ //this thread has to run more Stages TODO: puoi togliere if
+		if(collapsed!=0){ //this thread has to run more Stages
 		    IStage * nptr = static_cast<IStage*> (next);
 		    for(int i=0; i< collapsed; i++){
 		        nptr->stage_func();
@@ -67,9 +63,6 @@ struct Stage : IStage{
 	    if(nptr!=nullptr) nptr->set_input_ptr(nullptr);
 	}
     }
-
-
-    
 
     void run(){
         thread t(&Stage::run_thread, this);       
@@ -129,11 +122,6 @@ struct Stage : IStage{
         new_input=true;
     }
 
-    //TODO
-    void set_no_new_input(){
-        new_input=false;
-    }
-
     void add_next(Node &n, bool=false){
         next = &n;
 	output_ptr = static_cast<Tout*>(n.get_input_ptr());      
@@ -158,15 +146,12 @@ struct Stage : IStage{
 	    nptr = nptr->get_next();
 	}	
 	//Ends the thread, but only after finishing processing current task
-	cout << "Already collapsed: " << collapsed << ", thread # = " << i << endl;
 	collapsed += nptr->num_collapsed(); //TODO: controllo che ritorni >=0
 	nptr->collapse();
 	collapsed++; 
+	cout << "Stage # " << i << " has collapsed the successive Stage. It will manage " << 
+		collapsed << " Stages now" << endl;
     }
-/*
-    void end_s(){ //TODO: usa valore speciale in input per terminazione
-        end=true;
-    }*/
 
     IStage* get_next(){
         return static_cast<IStage*>(next);
@@ -183,7 +168,6 @@ struct Stage : IStage{
     Tf fun;
     Tout * output_ptr;
     Tin * input_ptr;
-  //  bool end;
     vector<thread> threads; //TODO: puoi usare unique_ptr o shared_ptr 
     bool new_input;
     Node * next;
@@ -191,9 +175,4 @@ struct Stage : IStage{
     int const i; //for debug
     double exec_time;
 };
-
-
-
-
-
 

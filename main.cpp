@@ -4,19 +4,13 @@
 #include "Pipe.hpp"
 using namespace std;;
 
-int main(int argc, char* argv[]){
+int main(int argc, char* argv[])
+{
     auto f = [] (int x) {return x;};
     auto fp = [] (int x) {cout << "Last stage result: " << x << endl; 
         return ((float)x); 
     };
-    auto fslow = [] (int x) {
-        for(int i=0; i<250; i++) i=i;
-	return x;
-    };
-    auto fslow2 = [] (int x) {
-        for(int i=0; i<300; i++) i=i;
-	return x;
-    };
+    
     Stage<int,function<int(int)>,int> s1{
         [](int x){
 	    for(int i=0; i<1000; i++)
@@ -32,6 +26,9 @@ int main(int argc, char* argv[]){
     Stage<int,function<float(int)>,float> sp{fp,8};
   
    
+    Pipe<int,float> p (&s1, &s2, &s3, &s4, &s5, &s6, &s7, &sp);
+    cout << "Pipe length: " << p.num_nodes() << endl;
+    p.run({1,2,3,4,5,6,7,8,9,10,11,12,13,14,15});
 
    /* LB Pipeline by hand 
     cout << "Building LB pipeline by hand\n";
@@ -63,19 +60,6 @@ int main(int argc, char* argv[]){
 */
 
     
-    Pipe<int,float> p (&s1, &s2, &s3, &s4, &s5, &s6, &s7, &sp);
-    cout << "Pipe length: " << p.num_nodes() << endl;
-    p.run({1,2,3,4,5,6,7,8,9,10,11,12,13,14,15});
-
-
-
-
-
-
-
-
-
-
 
     return 0;
 }

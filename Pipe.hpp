@@ -20,7 +20,6 @@ struct Pipe : Node {
     //Invoca metodo ricorsivamente finchè l'ultimo elemento di nodes è uno stage
     void add_next(Node& next, bool outer=true){
         nodes.back()->add_next(next, false);
-
 	IStage * isptr = static_cast<IStage*>(&next);
 	//nodes.push_back(&next);  		
 	nodes.push_back(isptr);  		
@@ -51,10 +50,6 @@ struct Pipe : Node {
         nodes.front()->set_input_ptr(&in);
     }
 
- //   Tout get_output(){
- //       return nodes.back()->get_output();
- //   }
-
     void set_new_input(){
         nodes.front()->set_new_input();
     }
@@ -78,9 +73,6 @@ struct Pipe : Node {
 
     void run(list<Tin>&& input){
         thread t(&Pipe::run_manager, this, ref(input));
-      /*  for(auto& x : nodes){
-	    x->wait_end();
-	}*/	
 	t.join();
     }
 
@@ -91,12 +83,6 @@ struct Pipe : Node {
 	   monitor_times();
        }
        set_input_ptr(nullptr); 
-      /* for(auto& x: nodes){
-         //  if(!(x->is_collapsed())){  //TODO
-	       x->set_input_ptr(nullptr);
-	//       return;
-	 //  }
-       }*/
        for(auto& s : nodes)
 	   s->wait_end();
     }
@@ -140,9 +126,6 @@ struct Pipe : Node {
 	        slowest = times.back().first;
 	}
     }
-
-
-
 
 
     int slowest;
