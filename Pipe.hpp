@@ -17,17 +17,16 @@ struct Pipe : Node {
 	create_pipeline(t...);
     }
 
-    //Invoca metodo ricorsivamente finchè l'ultimo elemento di nodes è uno stage
+   
     void add_next(Node& next, bool outer=true){
         nodes.back()->add_next(next, false);
 	IStage * isptr = static_cast<IStage*>(&next);
-	//nodes.push_back(&next);  		
 	nodes.push_back(isptr);  		
     } 
 
     void add_node(IStage* head_ptr){
 	if(!nodes.empty())  // if not empty link the two stages 
-	    add_next(*head_ptr,true); //invoke the method of the pipeline	    
+	    add_next(*head_ptr,true); //invoke the method of the pipeline
 	else 
 	    nodes.push_back(head_ptr);
     }
@@ -42,22 +41,9 @@ struct Pipe : Node {
         return nodes.back()->get_output_ptr();
     }
 
-    void set_input_ptr(void * in_ptr){
-        nodes.front()->set_input_ptr(in_ptr);
+    void set_input(void * in_ptr){
+        nodes.front()->set_input(in_ptr);
     }
-
-    void set_input(Tin& in){
-        nodes.front()->set_input_ptr(&in);
-    }
-
-    void set_new_input(){
-        nodes.front()->set_new_input();
-    }
-
-    bool is_ready(){
-        nodes.front()->is_ready();
-    }
-    
 
     int num_nodes(){
 	int c= 0;
@@ -79,10 +65,11 @@ struct Pipe : Node {
     void run_manager(list<Tin>& input){
        run();
        for(auto& x:input){
-           set_input(x);
+           set_input(&x);
 	   monitor_times();
        }
-       set_input_ptr(nullptr); 
+      // this_thread::sleep_for(chrono::milliseconds(2000));
+       set_input(nullptr); //TODO: input_ptr ottiene precedenza anche se non dovrebbe 
        for(auto& s : nodes)
 	   s->wait_end();
     }
