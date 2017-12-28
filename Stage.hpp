@@ -34,42 +34,38 @@ struct Stage : IStage{
 	    Tout out = fun(*input);  // compute-intensive line..
             auto end = chrono::system_clock::now();
 	    chrono::duration<double> diff = end-start;
-	    exec_time = diff.count();
-	    if (next!=nullptr){  // wait for next node to be ready only if next node exists
-	//se è collassato, inutile aspettare perchè tanto lo esegue questo thread
-	        output_ptr->push(new Tout(out), id);//TODO: memory leak	
+	    exec_time = diff.count(); 
+	    if (next!=nullptr){
+		next->set_input(new Tout(out));
+	       // output_ptr->push(new Tout(out), id);//TODO: memory leak	
               //  cout << "t " << i << " OUT: e = " << out << ", id = " << id << endl; 
 	    }
 	}
 	else{
 	//nullptr indica che devi finire(end=true). Poi usi variabile collapsed per 
 	//discriminare se devi finire perchè collassato o perchè la computazione è finita
-	    _end = true;  
-	    count = id; //TODO solo per prova
-            cout << "END t " << i << " e_ptr = " << input << ", id = " << id << endl; 
+	    _end = true;   
 	}
     }
 
     void run_thread(){
         while(!end()){           	
-	        stage_func();
-		if(collapsed>0){ //this thread has to run more Stages
-		    IStage * nptr = static_cast<IStage*> (next);
-		    for(int i=0; i< collapsed; i++){
-		        nptr->stage_func();
-			nptr = nptr->get_next();
-		    }
-		}            
+	    stage_func();
+	    if(collapsed>0){ //this thread has to run more Stages
+	        IStage * nptr = static_cast<IStage*> (next);
+		for(int i=0; i< collapsed; i++){
+		    nptr->stage_func();
+		    nptr = nptr->get_next();
+		}
+	    }            
     	} //Finalization..       
-        if(next!=nullptr && collapsed!=-1){ //collapsed = -1 means to stop only this thread (because of collapsing) TODO: puoi togliere prima guardia, perchè testi sotto
+        if(collapsed!=-1){ //collapsed = -1 means to stop only this thread
 	// If the next stages are collapsed, then they are already ended. 
-	// So, we just need to set nullptr as input to the next active thread (if any)
 	    IStage * nptr = static_cast<IStage*>(next);		 
-	    while(nptr!=nullptr && nptr->is_collapsed()){	  
-	        nptr = nptr->get_next();		
-	    }
-	    if(nptr!=nullptr) /*nptr->get_input_ptr()->push(nullptr,count);*/ set_input(nullptr);//TODO solo per prova
-	    // In più, c'è problema con i template
+	    while(nptr!=nullptr && nptr->is_collapsed())	  
+	        nptr = nptr->get_next();	    
+	    if(nptr!=nullptr)
+		nptr->set_input(nullptr);	  
 	}
     }
 

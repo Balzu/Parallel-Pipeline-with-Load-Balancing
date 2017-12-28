@@ -68,7 +68,7 @@ struct Pipe : Node {
            set_input(&x);
 	   monitor_times();
        }
-      // this_thread::sleep_for(chrono::milliseconds(2000));
+   
        set_input(nullptr); //TODO: input_ptr ottiene precedenza anche se non dovrebbe 
        for(auto& s : nodes)
 	   s->wait_end();
