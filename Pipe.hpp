@@ -7,7 +7,7 @@ using namespace std;;
 template <typename Tin, typename Tout>
 struct Pipe : Node {
     template<typename Head, typename... Tail> 
-    Pipe(Head h, Tail... t):max_consec{2},consecutive{0},slowest{-1} {
+    Pipe(Head h, Tail... t):max_consec{2},consecutive{0},slowest{-1},end{false} {
         create_pipeline(h,t...);
     }
     
@@ -55,10 +55,12 @@ struct Pipe : Node {
     void run(){
         for(auto &x: nodes)
 	    x->run();
-    }//TODO
+    }
 
     void run(list<Tin>&& input){
         thread t(&Pipe::run_manager, this, ref(input));
+	while(!end)
+	    monitor_times();//monitora lui, che altrimenti sarebbe in attesa
 	t.join();
     }
 
@@ -66,12 +68,13 @@ struct Pipe : Node {
        run();
        for(auto& x:input){
            set_input(&x);
-	   monitor_times();
+	 //  monitor_times();
        }
    
-       set_input(nullptr); //TODO: input_ptr ottiene precedenza anche se non dovrebbe 
+       set_input(nullptr);
        for(auto& s : nodes)
 	   s->wait_end();
+       end=true;
     }
 
    
