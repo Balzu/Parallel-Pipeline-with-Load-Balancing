@@ -12,7 +12,8 @@ struct IStage : Node{
     virtual void collapse() = 0;
     virtual IStage* get_next() = 0;
     virtual bool is_collapsed() = 0;
-    virtual double get_exec_time() = 0; 
+    virtual double get_exec_time() = 0;
+    virtual void reset_exec_time()=0; 
     virtual void collapse_next_stage() = 0;
     virtual void wait_end() = 0;
     virtual int num_collapsed() = 0;
@@ -22,7 +23,7 @@ template <typename Tin, typename Tf, typename Tout>
 struct Stage : IStage{
 
     Stage(Tf  function, int ind):fun{function}, input_ptr{new(TSOHeap<Tin>)},_end{false},
-	     next{nullptr}, collapsed{0}, i{ind}, exec_time{0.0},count{0}{};	
+	     next{nullptr}, collapsed{0}, i{ind}, exec_time{0.0},count{0},collapsing{false}{};	
    
     void stage_func(){ 
 	pair<Tin*,int> input_pair = input_ptr->pop();
@@ -49,7 +50,8 @@ struct Stage : IStage{
     }
 
     void run_thread(){
-        while(!end()){           	
+        while(!end()){
+	    while(collapsing);		
 	    stage_func();
 	    if(collapsed>0){ //this thread has to run more Stages
 	        IStage * nptr = static_cast<IStage*> (next);
@@ -57,6 +59,7 @@ struct Stage : IStage{
 		    nptr->stage_func();
 		    nptr = nptr->get_next();
 		}
+		cout << "Run collapsed function" << endl;
 	    }            
     	} //Finalization..       
         if(collapsed!=-1){ //collapsed = -1 means to stop only this thread
@@ -66,6 +69,10 @@ struct Stage : IStage{
 	        nptr = nptr->get_next();	    
 	    if(nptr!=nullptr)
 		nptr->set_input(nullptr);	  
+	}
+	else{
+	    while((input_ptr->size)>0)
+		stage_func();
 	}
     }
 
@@ -133,6 +140,7 @@ struct Stage : IStage{
     void collapse(){       
         collapsed=-1;
         input_ptr->push(nullptr, INT_MIN);//TODO cast a Tin* ?        	
+	while((input_ptr->size)>0);        
     }
 
     bool is_collapsed(){
@@ -140,14 +148,20 @@ struct Stage : IStage{
     }
 
     void collapse_next_stage(){ //TODO: parte difficile va qui, next può non essere chiaro
+	collapsing = true;
 	IStage * nptr = static_cast<IStage*>(next);
-	for(int i=0; i< collapsed; i++){ //TODO sostituisci con while(!collapsed)	  
+
+
+	for(int i=0; i< collapsed; i++){ //TODO rimuovi questa parte	  
 	    nptr = nptr->get_next();
 	}	
 	//Ends the thread, but only after finishing processing current task
 	collapsed += nptr->num_collapsed(); //TODO: controllo che ritorni >=0
+	collapsed++;
+
+
 	nptr->collapse();
-	collapsed++; 
+	collapsing = false; 
 	cout << "Stage # " << i << " has collapsed the successive Stage. It will manage " << 
 		collapsed << " Stages now" << endl;
     }
@@ -158,6 +172,10 @@ struct Stage : IStage{
 
     double get_exec_time(){
         return exec_time;
+    }
+
+    void reset_exec_time(){
+        exec_time = 0;
     }
 
     int num_collapsed(){
@@ -175,5 +193,6 @@ struct Stage : IStage{
     int const i; //for debug
     double exec_time;
     int count;
+    bool collapsing;
 };
 

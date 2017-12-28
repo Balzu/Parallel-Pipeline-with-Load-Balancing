@@ -29,10 +29,7 @@ struct TSOHeap{
 	while(size==max); //spinning..
 	{//grant exclusive access to the heap
 	    lock_guard<mutex> lock(heap_mutex);
-//	    if(item!=nullptr)
-		heap.push(pair<T*,int>(item, id));
-//	    else	    
-//		heap.push(pair<T*,int>(item, INT_MIN));
+            heap.push(pair<T*,int>(item, id));
 	    size++;
 	}        
     }
