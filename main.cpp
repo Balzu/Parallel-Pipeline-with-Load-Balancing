@@ -7,7 +7,7 @@ using namespace std;;
 int main(int argc, char* argv[])
 {
     auto f = [] (int x) {return x;};
-    auto fp = [] (int x) {cout << "Last stage result: " << x << endl; 
+    auto fp = [] (int x) {cout << "Last stage result: " << x << " " << endl; 
         return ((float)x); 
     };
     
@@ -26,9 +26,13 @@ int main(int argc, char* argv[])
     Stage<int,function<float(int)>,float> sp{fp,8};
   
    
-    Pipe<int,float> p (&s1, &s2, &s3, &s4, &s5, &s6, &s7, &sp);
+    Pipe<int,float> p ({/*&s1,*/ &s2, &s3, &s4, &s5, &s6, &s7, &sp});
     cout << "Pipe length: " << p.num_nodes() << endl;
-    p.run({1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,20,19,18});
+    list<int> li {};
+    for(int i=0; i<100; i++)
+	li.push_back(i);
+    p.run(move(li));
+    //p.run({1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,20,19,18});
 
    /* LB Pipeline by hand 
     cout << "Building LB pipeline by hand\n";

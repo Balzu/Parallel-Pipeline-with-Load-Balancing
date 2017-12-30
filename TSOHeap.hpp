@@ -1,10 +1,9 @@
 #include <mutex>
 #include <queue>
 #include <vector>
-#include <iostream>
 #include <atomic>
 #include <climits>
-#include <thread>
+
 using namespace std;
 
 template<typename T>
@@ -20,14 +19,13 @@ struct TSOHeap{
 
     TSOHeap(int _max=10):size{0},max{_max}{};
 
-    // Consumer never stuck
     // It is the caller that states the ordering, providing the id
     // (ordering can't be maintained inside this class, because of non determinism
     // due to multiple threads calling this method)
     void push(T* item, int id){
 //Don't use condition variable because don't want to deschedule threads
-	while(size==max); //spinning..
-	{//grant exclusive access to the heap
+	while(size==max);
+	{
 	    lock_guard<mutex> lock(heap_mutex);
             heap.push(pair<T*,int>(item, id));
 	    size++;
@@ -38,13 +36,14 @@ struct TSOHeap{
         while(size==0);
 	{
 	    lock_guard<mutex> lock(heap_mutex);
-	    //T * elem = heap.top().first;
 	    pair<T*,int> p = heap.top();
 	    heap.pop();
 	    size--;
-	    return p; //elem;
+	    return p;
 	}
     }
+
+    ~TSOHeap(){cout<<"DESTRUCTOR"<<endl;}//TODO: put variable to see wheter invoked twice, or delete using a method
 
     priority_queue<pair<T*,int>, vector<pair<T*,int>>,Comparator<T*>> heap;
     atomic<int> size;

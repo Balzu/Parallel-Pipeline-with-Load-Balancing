@@ -1,0 +1,5 @@
+#!/bin/bash
+ulimit -c unlimited
+while true; do 
+    ./a.out 
+done
