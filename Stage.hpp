@@ -1,4 +1,3 @@
-#include "Node.hpp"
 #include "TSOHeap.hpp"
 #include <iostream>
 #include <thread>
@@ -29,7 +28,7 @@ struct Stage : IStage{
     Stage(Tf  function, int ind):fun{function}, input_ptr{new(TSOHeap<Tin>)},_end{false},
 	     next{nullptr}, collapsed{0}, i{ind}, exec_time{0.0},count{0},collapsing{false}{};	
    
-    ~Stage(){delete input_ptr;}
+    ~Stage(){}
 
     void stage_func(){ 
 	pair<Tin*,int> input_pair = input_ptr->pop();
