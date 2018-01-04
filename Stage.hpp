@@ -28,7 +28,7 @@ struct Stage : IStage{
     Stage(Tf  function, int ind):fun{function}, input_ptr{new(TSOHeap<Tin>)},_end{false},
 	     next{nullptr}, collapsed{0}, i{ind}, exec_time{0.0},count{0},collapsing{false}{};	
    
-    ~Stage(){}
+    ~Stage(){delete input_ptr;}
 
     void stage_func(){ 
 	pair<Tin*,int> input_pair = input_ptr->pop();
@@ -43,21 +43,18 @@ struct Stage : IStage{
 	    if (next!=nullptr)
 		next->set_input(new Tout(out));           
 	}
-	else{
-	//nullptr indica che devi finire(end=true). Poi usi variabile collapsed per 
-	//discriminare se devi finire perchè collassato o perchè la computazione è finita
+	else
 	    _end = true;   
-	}
     }
 
     void run_thread(){
         while(!_end){
 	    while(collapsing); //waiting that next stage finishes the remaining tasks
 	    stage_func();
-	    if(collapsed==1 && output_ptr->size!=0)//TODO: && !_end	      
+	    if(collapsed==1 && !_end)	      
 		next->stage_func();			                
     	} 
-        if(collapsed!=-1){ //collapsed = -1 means to stop only this thread	
+        if(collapsed!=-1){ 	
 	    IStage * nptr = next;
 	    if(nptr!=nullptr && nptr->is_collapsed())	  
 	        nptr = nptr->get_next();	    
@@ -109,8 +106,7 @@ struct Stage : IStage{
 	next->collapse();
 	collapsed++;
 	collapsing = false; 
-	cout << "Stage # " << i << " has collapsed the successive Stage. It will manage " << 
-		collapsed << " Stages now" << endl;
+	cout << "Stage # " << i << " has collapsed the successive Stage" << endl;
     }
 
     IStage* get_next(){

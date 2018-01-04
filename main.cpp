@@ -29,7 +29,6 @@ auto print = [] (int x) {
     return ((float)x); 
 };
 
-
 int main(int argc, char* argv[])
 {
     auto print_usage_msg = [&](){

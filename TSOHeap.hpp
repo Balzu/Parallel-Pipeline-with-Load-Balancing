@@ -43,7 +43,8 @@ struct TSOHeap{
 	}
     }
 
-    ~TSOHeap(){cout<<"DESTRUCTOR"<<endl;}//TODO: put variable to see wheter invoked twice, or delete using a method
+    ~TSOHeap(){}
+
 
     priority_queue<pair<T*,int>, vector<pair<T*,int>>,Comparator<T*>> heap;
     atomic<int> size;
