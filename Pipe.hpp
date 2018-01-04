@@ -87,12 +87,6 @@ struct Pipe{
 		    if(avg[i]+avg[i+1]<avg[slowest]){
 		        if(nodes[i]->num_collapsed()==0 && nodes[i+1]->num_collapsed()==0){
 			    nodes[i]->collapse_next_stage();
-			    cout << "Slowest: " << slowest << " , time = " << avg[slowest]
-				    << " num measured = " << count[slowest] << endl;
-			    cout << "Fast 1: " << i << " , time = " << avg[i]
-				    << " num measured = " << count[i] << endl;
-			    cout << "Fast 2: " << (i+1) << " , time = " << avg[i+1]
-				    << " num measured = " << count[i+1] << endl;
 			    break;    
 			}		    
 		    }		

@@ -54,7 +54,7 @@ struct Stage : IStage{
         while(!_end){
 	    while(collapsing); //waiting that next stage finishes the remaining tasks
 	    stage_func();
-	    if(collapsed==1 && output_ptr->size!=0)	      
+	    if(collapsed==1 && output_ptr->size!=0)//TODO: && !_end	      
 		next->stage_func();			                
     	} 
         if(collapsed!=-1){ //collapsed = -1 means to stop only this thread	
